@@ -19,11 +19,13 @@ This TNC has same functionality as WB8WGA's PIC TNC.
 
 ## How to build
 
-`cd pico_tnc`  
-`mkdir build`  
-`cd build`  
-`cmake ..`  
-`make -j4`  
+```
+cd pico_tnc
+mkdir build
+cd build
+cmake ..
+make -j4
+```
 
 ![command line](command.png)
 [![schemantic](schematic.jpg)](schematic.png)
