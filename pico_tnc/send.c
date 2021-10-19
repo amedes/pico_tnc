@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021, Kazuhisa Yokota, JN1DFF
+Copyright (c) 2021, JN1DFF
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,26 +48,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "wave_table_132mhz.h"
 
 static const int pwm_pins[] = {
-    14, // port 0
-    12,
-    10,
-    8,
-    6,
-    4,
-    2,
-    0
+    10, // port 0
+    8,  // port 1
+    6,  // port 2
 };
 
 static const int ptt_pins[] = {
-    //PICO_DEFAULT_LED_PIN
-    15, // port 0
-    13,
-    11,
-    9,
-    7,
-    5,
-    3,
-    1
+    11, // port 0
+    9,  // port 1
+    7,  // port 2
 };
 
 #define LED_PIN PICO_DEFAULT_LED_PIN
