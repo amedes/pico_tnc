@@ -20,11 +20,13 @@ This TNC has same functionality as WB8WGA's PIC TNC.
 ## How to build
 
 ```
+git clone https://github.com/amedes/pico_tnc.git
 cd pico_tnc
 mkdir build
 cd build
 cmake ..
 make -j4
+(flash 'pico_tnc/pico_tnc.uf2' file to your Pico)
 ```
 
 ![command line](command.png)
