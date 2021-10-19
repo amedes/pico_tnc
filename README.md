@@ -6,6 +6,7 @@ This TNC has same functionality as WB8WGA's PIC TNC.
 
 ## PIC TNC features
 
+- Encode and decode Bell 202 AFSK signal without modem chip
 - Digipeat UI packet up to 1024 byte length
 - Send beacon packet
 - Support converse mode
