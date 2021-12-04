@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021, Kazuhisa Yokota, JN1DFF
+Copyright (c) 2021, JN1DFF
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -99,6 +99,9 @@ static const uint8_t *gps_str[] = {
 
 // indicate converse mode
 bool converse_mode = false;
+// indicate calibrate mode
+bool calibrate_mode = false;
+uint8_t calibrate_idx = 0;
 
 static uint8_t *read_call(uint8_t *buf, callsign_t *c)
 {
@@ -547,7 +550,33 @@ static bool cmd_txdelay(tty_t *ttyp, uint8_t *buf, int len)
 
 static bool cmd_calibrate(tty_t *ttyp, uint8_t *buf, int len)
 {
-    tty_write_str(ttyp, "CALIBRATE\r\n");
+    //tty_write_str(ttyp, "CALIBRATE\r\n");
+    tnc_t *tp = &tnc[0];
+    if (tp->send_state != SP_IDLE) {
+        tty_write_str(ttyp, "Transmitter busy\r\n");
+        return false;
+    }
+
+    tp->send_state = SP_CALIBRATE;
+    tp->do_nrzi = false;
+    calibrate_mode = true;
+    calibrate_idx = 0;
+    tp->cal_data = 0x00;
+    tp->ttyp = ttyp;
+    tp->cal_time = tnc_time();
+    tty_write_str(ttyp, "Calibrate Mode. SP to toggle; ctl C to Exit\r\n");
+    return true;
+}
+
+void calibrate(void)
+{
+    tnc_t *tp = &tnc[0];
+    if (tp->send_state != SP_CALIBRATE_OFF) return;
+
+    tp->send_state = SP_IDLE;
+    tp->do_nrzi = true;
+    calibrate_mode = false;
+    tty_write_str(tp->ttyp, "Exit Calibrate Mode\r\ncmd: ");
 }
 
 static bool cmd_converse(tty_t *ttyp, uint8_t *buf, int len)
@@ -719,7 +748,7 @@ void cmd(tty_t *ttyp, uint8_t *buf, int len)
     if (matched == 1) {
 
         if (mp->func(ttyp, param, param_len)) {
-            if (!converse_mode) tty_write_str(ttyp, "\r\nOK\r\n");
+            if (!(converse_mode | calibrate_mode)) tty_write_str(ttyp, "\r\nOK\r\n");
             return;
         }
     }

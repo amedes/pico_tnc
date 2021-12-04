@@ -63,6 +63,8 @@ static const int ptt_pins[] = {
 
 #define ISR_PIN 15
 
+#define CAL_TIMEOUT (60 * 100)  // 60 sec
+
 static void __isr dma_handler(void)
 {
     int int_status = dma_hw->ints0;
@@ -152,7 +154,11 @@ int send_byte(tnc_t *tp, uint8_t data, bool bit_stuff)
         int bit = byte & 1;
         while (byte > 1) { // check sentinel
 
-            if (!bit) tp->level ^= 1; // NRZI, invert if original bit == 0
+            if (tp->do_nrzi) {
+                if (!bit) tp->level ^= 1; // NRZI, invert if original bit == 0
+            } else {
+                tp->level = bit;
+            }
 
             // make Bell202 CPAFSK audio samples
             tp->dma_blocks[tp->next][idx++] = phase_tab[tp->level][tp->phase]; // 1: mark, 0: space
@@ -309,17 +315,6 @@ void send_init(void)
     gpio_put(SMPS_PIN, 1);
 }
 
-enum SEND_STATE {
-    SP_IDLE = 0,
-    SP_WAIT_CLR_CH,
-    SP_P_PERSISTENCE,
-    SP_WAIT_SLOTTIME,
-    SP_PTT_ON,
-    SP_SEND_FLAGS,
-    SP_DATA_START,
-    SP_DATA,
-    SP_ERROR,
-};
 
 int send_queue_free(tnc_t *tp)
 {
@@ -434,6 +429,15 @@ void send(void)
                 while (queue_try_remove(&tp->send_queue, &data)) {
                 }
                 tp->send_state = SP_IDLE;
+                break;
+
+            case SP_CALIBRATE:
+                if (tnc_time() - tp->cal_time >= CAL_TIMEOUT) {
+                    tp->send_state = SP_CALIBRATE_OFF;
+                } else {
+                    send_byte(tp, tp->cal_data, false);
+                }
+                break;
         }
 
         tp++;

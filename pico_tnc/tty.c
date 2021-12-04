@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021, Kazuhisa Yokota, JN1DFF
+Copyright (c) 2021, JN1DFF
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -112,8 +112,21 @@ void tty_write_str(tty_t *ttyp, uint8_t const *str)
 #define BELL '\a'
 #define CTRL_C '\x03'
 #define FEND 0xc0
+#define SP ' '
 
 #define KISS_TIMEOUT (1 * 100) // 1 sec
+ 
+#define CAL_DATA_MAX 3
+
+static const uint8_t calibrate_data[CAL_DATA_MAX] = {
+    0x00, 0xff, 0x55,
+};
+
+static const char *calibrate_str[CAL_DATA_MAX] = {
+    "send space (2200Hz)\r\n",
+    "send mark  (1200Hz)\r\n",
+    "send 0x55  (1200/2200Hz)\r\n",
+};
 
 void tty_input(tty_t *ttyp, int ch)
 {
@@ -126,6 +139,28 @@ void tty_input(tty_t *ttyp, int ch)
         }
         // timeout, exit kiss frame
         ttyp->kiss_state = KISS_OUTSIDE;
+    }
+
+    // calibrate mode
+    if (calibrate_mode) {
+        tnc_t *tp = &tnc[0];
+
+        switch (ch) {
+            case SP: // toggle mark/space
+                if (++calibrate_idx >= CAL_DATA_MAX) calibrate_idx = 0;
+                tp->cal_data = calibrate_data[calibrate_idx];
+                tty_write_str(ttyp, calibrate_str[calibrate_idx]);
+                tp->cal_time = tnc_time();
+                break;
+
+            case CTRL_C:
+                tp->send_state = SP_CALIBRATE_OFF;
+                break;
+
+            default:
+                tty_write_char(ttyp, BELL);
+        }
+        return;
     }
 
     switch (ch) {
@@ -153,7 +188,7 @@ void tty_input(tty_t *ttyp, int ch)
                     cmd(ttyp, ttyp->cmd_buf, ttyp->cmd_idx);
                 }
             }
-            if (!converse_mode) tty_write_str(ttyp, "cmd: ");
+            if (!(converse_mode | calibrate_mode)) tty_write_str(ttyp, "cmd: ");
             ttyp->cmd_idx = 0;
             break;
 

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021, Kazuhisa Yokota, JN1DFF
+Copyright (c) 2021, JN1DFF
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -95,12 +95,16 @@ void tnc_init(void)
 
         // send queue
         queue_init(&tp->send_queue, sizeof(uint8_t), SEND_QUEUE_LEN);
+        tp->send_state = SP_IDLE;
 
         tp->cdt = 0;
         tp->kiss_txdelay = 50;
         tp->kiss_p = 63;
         tp->kiss_slottime = 10;
         tp->kiss_fullduplex = 0;
+
+        // calibrate
+        tp->do_nrzi = true;
     }
 
     //printf("%d ports support\n", PORT_N);

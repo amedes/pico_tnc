@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021, Kazuhisa Yokota, JN1DFF
+Copyright (c) 2021, JN1DFF
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -84,6 +84,8 @@ typedef struct {
   int high_i;
   int high_q;
 } values_t;
+
+typedef struct TTY tty_t;
 
 typedef struct TNC {
     uint8_t port;
@@ -177,6 +179,12 @@ typedef struct TNC {
     uint16_t packet_len;
     int wait_time;
 
+    // calibrate
+    uint8_t cal_data;
+    bool do_nrzi;
+    uint32_t cal_time;
+    tty_t *ttyp;
+
 } tnc_t;
 
 extern tnc_t tnc[];
@@ -256,3 +264,18 @@ typedef struct TTY {
 } tty_t;
 
 extern tty_t tty[];
+
+// send process state
+enum SEND_STATE {
+    SP_IDLE = 0,
+    SP_WAIT_CLR_CH,
+    SP_P_PERSISTENCE,
+    SP_WAIT_SLOTTIME,
+    SP_PTT_ON,
+    SP_SEND_FLAGS,
+    SP_DATA_START,
+    SP_DATA,
+    SP_ERROR,
+    SP_CALIBRATE,
+    SP_CALIBRATE_OFF,
+};

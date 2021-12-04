@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021, Kazuhisa Yokota, JN1DFF
+Copyright (c) 2021, JN1DFF
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,5 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 extern bool converse_mode;
+extern bool calibrate_mode;
+extern uint8_t calibrate_idx;
 
 void cmd(tty_t *ttyp, uint8_t *buf, int len);
+void calibrate(void);
