@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "cmd.h"
 
 // number of ports
-#define PORT_N 1    // number of ports, 1..3
+#define PORT_N 3    // number of ports, 1..3
 
 #define BAUD_RATE 1200
 #define SAMPLING_N 11
@@ -163,7 +163,7 @@ typedef struct TNC {
     int cnt_one;
 
     // wave buffer for DMA
-    uint16_t const *dma_blocks[DAC_BLOCK_LEN][CONTROL_N + 1];
+    uint32_t const *dma_blocks[DAC_BLOCK_LEN][CONTROL_N + 1];
 
     // send data queue
     queue_t send_queue;

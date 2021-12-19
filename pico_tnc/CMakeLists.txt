@@ -22,6 +22,8 @@ add_executable(pico_tnc
         kiss.c
         )
 
+pico_generate_pio_header(pico_tnc ${CMAKE_CURRENT_LIST_DIR}/pio_dac.pio)
+
 target_include_directories(pico_tnc PRIVATE
         include
 )
@@ -35,7 +37,7 @@ target_link_libraries(pico_tnc
         hardware_pwm
         hardware_uart
 		# For the dummy output:
-		#hardware_pio
+		hardware_pio
 		#pico_multicore
 		)
 

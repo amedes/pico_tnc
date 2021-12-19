@@ -1,29 +1,8 @@
-/*
-Copyright (c) 2021, JN1DFF
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-* Redistributions of source code must retain the above copyright notice, 
-  this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright notice, 
-  this list of conditions and the following disclaimer in the documentation 
-  and/or other materials provided with the distribution.
-* Neither the name of the <organization> nor the names of its contributors 
-  may be used to endorse or promote products derived from this software 
-  without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+/**
+ * Copyright (c) 2021 JN1DFF
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 
 /*
  * send.c - send packet
@@ -37,15 +16,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hardware/pwm.h"
 #include "hardware/irq.h"
 #include "hardware/sync.h"
+#include "hardware/pio.h"
 #include "hardware/structs/uart.h"
 #include "pico/util/queue.h"
+
+#include "pio_dac.pio.h"
 
 #include "tnc.h"
 #include "send.h"
 #include "ax25.h"
 
 //#include "wave_table.h"
-#include "wave_table_132mhz.h"
+#include "wave_table.h"
 
 static const int pwm_pins[] = {
     10, // port 0
@@ -75,31 +57,30 @@ static void __isr dma_handler(void)
     for (int i = 0; i < PORT_N; i++) {
         tnc_t *tp = &tnc[i];
 
-    if (int_status & tp->data_chan_mask) {
+        if (int_status & tp->data_chan_mask) {
 
-        // generate modem signal
-        uint32_t *addr;
-        if (queue_try_remove(&tp->dac_queue, &addr)) {
+            // generate modem signal
+            uint32_t *addr;
+            if (queue_try_remove(&tp->dac_queue, &addr)) {
             
-            dma_channel_set_read_addr(tp->ctrl_chan, addr, true);
+                dma_channel_set_read_addr(tp->ctrl_chan, addr, true);
 #if 0
             printf("dma_hander: block = %p\n", &block[0]);
             for (int i = 0; i < CONTROL_N + 1; i++) {
                 printf("block[%d] = %p\n", i, block[i]);
             }
 #endif
-        } else {
-            gpio_put(tp->ptt_pin, 0); // PTT off
-            pwm_set_chan_level(tp->pwm_slice, PWM_CHAN_A, 0); // set pwm level 0
-            tp->busy = false;
-            //printf("(%u) dma_handler: queue is empty, port = %d, data_chan = %d, ints = %08x\n", tnc_time(), tp->port, tp->data_chan, int_status);
+            } else {
+                gpio_put(tp->ptt_pin, 0); // PTT off
+                //pwm_set_chan_level(tp->pwm_slice, PWM_CHAN_A, 0); // set pwm level 0
+                tp->busy = false;
+                //printf("(%u) dma_handler: queue is empty, port = %d, data_chan = %d, ints = %08x\n", tnc_time(), tp->port, tp->data_chan, int_status);
+            }
+            //dma_hw->ints0 = tp->data_chan_mask;
         }
-        //dma_hw->ints0 = tp->data_chan_mask;
-    }
     } // for
 
     dma_hw->ints0 = int_status;
-
 }
 
 static void send_start(tnc_t *tp)
@@ -108,7 +89,7 @@ static void send_start(tnc_t *tp)
         gpio_put(tp->ptt_pin, 1); // PTT on
         tp->busy = true;
         //printf("restart dma, ctrl = %08x, port = %d\n", dma_hw->ch[tp->data_chan].ctrl_trig, tp->port);
-        dma_channel_set_read_addr(tp->data_chan, NULL, true);
+        dma_channel_set_read_addr(tp->data_chan, NULL, true); // trigger NULL interrupt
     }
 }
 
@@ -193,7 +174,7 @@ int send_byte(tnc_t *tp, uint8_t data, bool bit_stuff)
         tp->dma_blocks[tp->next][idx] = NULL;
 
         // send fsk data to dac queue
-        uint16_t const **block = &tp->dma_blocks[tp->next][0];
+        uint32_t const **block = &tp->dma_blocks[tp->next][0];
         if (queue_try_add(&tp->dac_queue, &block)) {
 #if 0
             if (!tp->busy) {
@@ -223,7 +204,12 @@ int send_byte(tnc_t *tp, uint8_t data, bool bit_stuff)
 void send_init(void)
 {
     // set system clock, PWM uses system clock
-    set_sys_clock_khz(SYS_CLK_KHZ, true);
+    //set_sys_clock_khz(SYS_CLK_KHZ, true);
+
+    // pio_dac initialize
+    PIO pio = pio0;
+    // load pio_dac program
+    uint offset = pio_add_program(pio, &pio_dac_program);
 
     // initialize tnc[]
     for (int i = 0; i < PORT_N; i++) {
@@ -241,6 +227,7 @@ void send_init(void)
         gpio_set_dir(tp->ptt_pin, true); // output
         gpio_put(tp->ptt_pin, 0);
 
+#if 0
         // PWM pins
         tp->pwm_pin = pwm_pins[i];
         // PWM configuration
@@ -253,6 +240,12 @@ void send_init(void)
         pwm_config_set_clkdiv_int(&pc, 1); // 1.0
         pwm_config_set_wrap(&pc, PWM_CYCLE - 1);
         pwm_init(tp->pwm_slice, &pc, true);   // start PWM
+#endif
+
+        // PIO
+        // find free state machine
+        uint sm = pio_claim_unused_sm(pio, true);
+        pio_dac_program_init(pio, sm, offset, pwm_pins[i], PIO_DAC_FS);
 
         // DMA
         tp->ctrl_chan = dma_claim_unused_channel(true);
@@ -278,8 +271,8 @@ void send_init(void)
 
         // DMA data channel
         dc = dma_channel_get_default_config(tp->data_chan);
-        channel_config_set_transfer_data_size(&dc, DMA_SIZE_16); // PWM level is 16 bits
-        channel_config_set_dreq(&dc, DREQ_PWM_WRAP0 + tp->pwm_slice);
+        channel_config_set_transfer_data_size(&dc, DMA_SIZE_32); // pio_dac data size, 32bit
+        channel_config_set_dreq(&dc, pio_get_dreq(pio, sm, true));  // pio sm, TX
         channel_config_set_chain_to(&dc, tp->ctrl_chan);
         channel_config_set_irq_quiet(&dc, true);
         // set high priority bit
@@ -288,7 +281,7 @@ void send_init(void)
         dma_channel_configure(
             tp->data_chan,
             &dc,
-            &pwm_hw->slice[tp->pwm_slice].cc,
+            &pio0_hw->txf[sm],  // The initial write address
             NULL,           // Initial read address and transfer count are unimportant;
             BIT_CYCLE,      // audio data of 1/1200 s
             false           // Don't start yet.
