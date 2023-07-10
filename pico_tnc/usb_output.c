@@ -45,6 +45,8 @@ void usb_write(uint8_t const *data, int len)
 {
     int i;
 
+    if (!tud_cdc_connected()) return;
+
     if (!queue_is_empty(&usb_queue)) {
 
         for (i = 0; i < len; i++) {
@@ -73,6 +75,8 @@ void usb_write_char(uint8_t ch)
 {
     int i = 0;
 
+    if (!tud_cdc_connected()) return;
+
     if (!queue_is_empty(&usb_queue)) {
 
         queue_try_add(&usb_queue, &ch);
@@ -92,6 +96,8 @@ void usb_write_char(uint8_t ch)
 void usb_output(void)
 {
     uint8_t data;
+
+    if (!tud_cdc_connected()) return;
 
     if (queue_is_empty(&usb_queue)) return;
 
