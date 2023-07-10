@@ -31,11 +31,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include "pico/stdlib.h"
 
-#ifdef RASPBERRYPI_PICO
+#include "ax25.h"
+
+//#ifdef RASPBERRYPI_PICO
+#ifdef PICO_DEFAULT_UART
 
 #include "hardware/dma.h"
-
-#include "ax25.h"
 
 #define OUT_INV (1 << 11)
 #define OUT_REV (1 << 10)
@@ -78,11 +79,12 @@ int ax25_fcs(uint32_t crc, const uint8_t *data, int size)
 
 #else
 
+#warning using C standard routine
+
 #define CRC16_POLY 0x10811 /* G(x) = 1 + x^5 + x^12 + x^16 */
 
-int ax25_fcs(int crc, const uint8_t packet[], int length)
+int ax25_fcs(uint32_t crc, const uint8_t packet[], int length)
 {
-    uint32_t crc;
     int i, j;
 
     if (length <= 0) return -1; // packet too short
