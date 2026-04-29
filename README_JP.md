@@ -17,11 +17,11 @@ PICO TNCはRaspberry Pi Picoを使ったTNC(ターミナルノードコントロ
 * UI-DIGIの機能
 * KISSプロトコルをサポート
 
-![pico-tnc](pico-tnc.jpg)
+![pico-tnc](images/pico-tnc.jpg)
 
 # 回路図
 
-[![pico-tnc-schemantic](PICOTNC-sch-S.jpg)](PICOTNC-sch-L.jpg)
+[![pico-tnc-schemantic](images/PICOTNC-sch-S.jpg)](images/PICOTNC-sch-L.jpg)
 
 # 部品リスト
 
@@ -45,7 +45,7 @@ PICO TNCはRaspberry Pi Picoを使ったTNC(ターミナルノードコントロ
 
 # シルク図(部品面)
 
-![pico-tnc-silk](PICOTNC-silk.jpg)
+![pico-tnc-silk](images/PICOTNC-silk.jpg)
 
 # ハンダジャンパの設定
 
@@ -58,7 +58,7 @@ J1,J3を使う場合のみ必要．J2の端子から無線機に接続する場�
 
 # ファームウェアの書き込み
 
-![pico_tnc.uf2](https://github.com/amedes/pico_tnc/pico_tnc.uf2)をRaspberry Pi Picoに書き込む．(ドラッグ・アンド・ドロップ)
+pico_tnc.uf2
 
 # コマンドリスト(設定例)
 
